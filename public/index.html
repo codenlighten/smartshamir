@@ -144,7 +144,7 @@
         <form id="recover-form">
           <fieldset>
             <label for="shares2"
-              >Click on key slices below or manually enter Shares (as JSON
+              >Click on key slices above or manually enter Shares (as JSON
               array)</label
             >
             <textarea
@@ -204,7 +204,10 @@
             const data = await response.json();
             const resultContainer = document.getElementById("split-result");
             resultContainer.innerHTML = ""; // Clear previous results
-
+            const directions = document.createElement("p");
+            directions.textContent =
+              "Click on each part to add it to the recover form or download all parts.";
+            resultContainer.appendChild(directions);
             // Create clickable parts for each split secret
             data.forEach((part) => {
               const partElement = document.createElement("div");
