@@ -119,6 +119,13 @@
         margin-top: 20px;
         text-align: center;
       }
+      #recovered {
+        background-color: #f0f0f0;
+        border-radius: 4px;
+        padding: 10px;
+        margin: 20px;
+        overflow-y: auto;
+      }
     </style>
   </head>
   <body>
@@ -384,7 +391,7 @@
             const secret = data.secret;
             document.getElementById(
               "recover-result"
-            ).innerHTML = `<pre id="recovered">${secret}</pre>`;
+            ).innerHTML = `<p id="recovered">${secret}</p>`;
           } catch (error) {
             document.getElementById("recover-result").textContent =
               "Error recovering the secret. Please check your input.";
@@ -414,8 +421,8 @@
         const password = prompt("Enter a password to decrypt your secret");
         const decryptedSecret = decrypt(recoveredSecret, password);
         document.getElementById(
-          "recovered"
-        ).innerHTML = `<pre>${decryptedSecret}</pre>`;
+          "recover-result"
+        ).innerHTML = `<p id="recovered">${decryptedSecret}</p>`;
       });
     </script>
   </body>
