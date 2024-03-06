@@ -1,6 +1,6 @@
 // Load environment variables from a .env file
 require("dotenv").config();
-
+const cors = require("cors");
 // Import necessary modules
 const express = require("express");
 const { split, join } = require("shamir");
@@ -15,6 +15,9 @@ const port = process.env.PORT || 5000;
 app.use(express.json());
 // Middleware for parsing URL-encoded bodies
 app.use(express.urlencoded({ extended: true }));
+// Middleware for enabling CORS
+// enable cors from secretslices.com
+app.use(cors({ origin: "https://secretslices.com" }));
 // Serve static files from the "public" directory
 app.use(express.static("public"));
 
@@ -59,10 +62,21 @@ app.get("/", (req, res) => {
 
 // Route to split a secret message
 app.post("/split", (req, res) => {
-  const { secret, numParts, quorum } = req.body;
   try {
-    const parts = splitMessage(secret, parseInt(numParts), parseInt(quorum));
-    res.json(parts);
+    const { secret, numParts, quorum } = req.body;
+    if (
+      secret === undefined ||
+      numParts === undefined ||
+      quorum === undefined
+    ) {
+      return res.status(400).json({ error: "Missing required parameter" });
+    }
+    try {
+      const parts = splitMessage(secret, parseInt(numParts), parseInt(quorum));
+      res.status(200).json({ parts });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -70,10 +84,17 @@ app.post("/split", (req, res) => {
 
 // Route to join parts of a secret message
 app.post("/join", (req, res) => {
-  const { parts } = req.body;
   try {
-    const secret = joinParts(parts);
-    res.json({ secret });
+    const { parts } = req.body;
+    if (parts === undefined) {
+      return res.status(400).json({ error: "Missing required parameter" });
+    }
+    try {
+      const secret = joinParts(parts);
+      res.status(200).json({ secret });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
