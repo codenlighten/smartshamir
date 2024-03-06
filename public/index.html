@@ -423,6 +423,8 @@
         document.getElementById(
           "recover-result"
         ).innerHTML = `<p id="recovered">${decryptedSecret}</p>`;
+        //disable checkbox
+        document.getElementById("decrypt").disabled = true;
       });
     </script>
   </body>
