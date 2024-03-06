@@ -107,6 +107,14 @@
         color: #fff;
       }
 
+      /* encrypt and decrypt button */
+
+      #encrypt,
+      #decrypt :hover {
+        background-color: #007bff;
+        color: #fff;
+      }
+
       footer {
         margin-top: 20px;
         text-align: center;
@@ -144,6 +152,14 @@
             <label id="changeLabel" for="privateKey"
               >Change to a Private Key</label
             >
+            <!-- checkbox to check for encrypt message -->
+            <input
+              type="checkbox"
+              id="encrypt"
+              name="encrypt"
+              value="encrypt"
+            />
+            <label for="encrypt">Encrypt Secret</label>
             <label for="threshold"
               >Threshold (Minimum shares to recover secret)</label
             >
@@ -162,6 +178,7 @@
               required
               placeholder="Enter number of shares"
             />
+
             <button type="submit" class="button-primary">Split Secret</button>
           </fieldset>
         </form>
@@ -182,8 +199,17 @@
               placeholder='Format: [{"part":"1","value":"..."}, ...]'
             ></textarea>
             <button type="submit" class="button-primary">Recover Secret</button>
+            <!-- check box to decrypt -->
+            <input
+              type="checkbox"
+              id="decrypt"
+              name="decrypt"
+              value="decrypt"
+            />
+            <label for="decrypt">Decrypt Secret</label>
           </fieldset>
         </form>
+
         <div id="recover-result"></div>
       </section>
       <section class="section" id="help-page">
@@ -205,10 +231,16 @@
     <script src="encryption.js"></script>
     <script>
       //clear inputs
+      // ondom load
+
       document.getElementById("secret").value = "";
       document.getElementById("threshold").value = "";
       document.getElementById("shares").value = "";
       document.getElementById("shares2").value = "";
+      //uncheck checkbox
+      document.getElementById("privateKey").checked = false;
+      document.getElementById("encrypt").checked = false;
+      document.getElementById("decrypt").checked = false;
       const Buffer = bsv.deps.Buffer;
       const generateKeys = () => {
         const Mnemonic = bsv.Mnemonic;
@@ -346,14 +378,42 @@
               body: JSON.stringify({ parts }),
             });
             const data = await response.json();
+            const secret = data.secret;
             document.getElementById(
               "recover-result"
-            ).innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            ).innerHTML = `<pre id="recovered">${secret}</pre>`;
           } catch (error) {
             document.getElementById("recover-result").textContent =
               "Error recovering the secret. Please check your input.";
           }
         });
+
+      //check if checkbox is checked
+      document.getElementById("encrypt").addEventListener("change", () => {
+        if (document.getElementById("encrypt").checked) {
+          const secret = document.getElementById("secret").value;
+          const password = prompt("Enter a password to encrypt your secret");
+          const encryptedSecret = encrypt(secret, password);
+          document.getElementById("secret").value = encryptedSecret;
+        } else {
+          const secret = document.getElementById("secret").value;
+          const password = prompt("Enter a password to decrypt your secret");
+          const decryptedSecret = decrypt(secret, password);
+          document.getElementById("secret").value = decryptedSecret;
+        }
+      });
+
+      //check if checkbox is checked
+      document.getElementById("decrypt").addEventListener("change", () => {
+        const recoveredSecret =
+          document.getElementById("recovered").textContent;
+        console.log("Recovered Secret: ", recoveredSecret);
+        const password = prompt("Enter a password to decrypt your secret");
+        const decryptedSecret = decrypt(recoveredSecret, password);
+        document.getElementById(
+          "recovered"
+        ).innerHTML = `<pre>${decryptedSecret}</pre>`;
+      });
     </script>
   </body>
 </html>
