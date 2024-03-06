@@ -1,11 +1,10 @@
 // Load environment variables from a .env file
 require("dotenv").config();
-const cors = require("cors");
 // Import necessary modules
 const express = require("express");
 const { split, join } = require("shamir");
 const { randomBytes } = require("crypto");
-
+const cors = require("cors");
 // Initialize Express app
 const app = express();
 // Set the port from environment variable or default to 5000
