@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shamir Secret Sharing</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/milligram/dist/milligram.min.css"
+    />
+    <!-- bsv unpkg -->
+    <script src="https://unpkg.com/bsv@1.5"></script>
+    <style>
+      body {
+        margin: 0 auto;
+        max-width: 800px;
+        padding: 20px;
+      }
+      #split-result,
+      #recover-result {
+        background-color: #f0f0f0;
+        border-radius: 4px;
+        padding: 10px;
+        margin-top: 20px;
+        overflow-y: auto;
+      }
+      textarea {
+        min-height: 100px;
+      }
+      .clickable-part {
+        cursor: pointer;
+        margin-bottom: 5px;
+        display: inline-block;
+        background: #e1e1e1;
+        border-radius: 4px;
+        padding: 5px;
+        font-size: 90%;
+      }
+      .clickable-part:hover {
+        background: #d1d1d1;
+      }
+
+      footer {
+        margin-top: 20px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Shamir's Secret Sharing</h1>
+      <p>
+        Securely split a secret into shares or recover the original secret from
+        shares.
+      </p>
+    </header>
+    <main>
+      <section>
+        <h2>Split Secret</h2>
+        <form id="split-form">
+          <fieldset>
+            <label for="secret">Secret Message</label>
+            <input
+              type="text"
+              id="secret"
+              name="secret"
+              required
+              placeholder="Enter secret message"
+            />
+            <label for="threshold"
+              >Threshold (Minimum shares to recover secret)</label
+            >
+            <input
+              type="number"
+              id="threshold"
+              name="threshold"
+              required
+              placeholder="Enter threshold"
+            />
+            <label for="shares">Number of Shares</label>
+            <input
+              type="number"
+              id="shares"
+              name="shares"
+              required
+              placeholder="Enter number of shares"
+            />
+            <button type="submit" class="button-primary">Split Secret</button>
+          </fieldset>
+        </form>
+        <div id="split-result"></div>
+      </section>
+      <section>
+        <h2>Recover Secret</h2>
+        <form id="recover-form">
+          <fieldset>
+            <label for="shares2"
+              >Click on key slices below or manually enter Shares (as JSON
+              array)</label
+            >
+            <textarea
+              id="shares2"
+              name="shares"
+              required
+              placeholder='Format: [{"part":"1","value":"..."}, ...]'
+            ></textarea>
+            <button type="submit" class="button-primary">Recover Secret</button>
+          </fieldset>
+        </form>
+        <div id="recover-result"></div>
+      </section>
+      <!-- copyright 2024 smartledger & codenlighten-->
+      <footer>
+        <p>
+          &copy; 2024
+          <a href="https://smartledger.solutions" target="_blank"
+            >SmartLedger</a
+          >
+          &
+          <a href="https://twitter.com/codenlighten1" target="_blank"
+            >Codenlighten</a
+          >
+        </p>
+      </footer>
+    </main>
+    <script>
+      //clear inputs
+      document.getElementById("secret").value = "";
+      document.getElementById("threshold").value = "";
+      document.getElementById("shares").value = "";
+      document.getElementById("shares2").value = "";
+
+      const privateKey = new bsv.PrivateKey.fromRandom();
+      //add to message
+      console.log("Private Key: ", privateKey.toWIF());
+      document.getElementById("secret").value = privateKey.toWIF();
+      document
+        .getElementById("split-form")
+        .addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const secret = document.getElementById("secret").value;
+          const threshold = document.getElementById("threshold").value;
+          const shares = document.getElementById("shares").value;
+
+          try {
+            const response = await fetch("/split", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                secret,
+                numParts: shares,
+                quorum: threshold,
+              }),
+            });
+            const data = await response.json();
+            const resultContainer = document.getElementById("split-result");
+            resultContainer.innerHTML = ""; // Clear previous results
+
+            // Create clickable parts for each split secret
+            data.forEach((part) => {
+              const partElement = document.createElement("div");
+              partElement.classList.add("clickable-part");
+              partElement.textContent = JSON.stringify(part);
+              partElement.onclick = () => addPartToRecover(part);
+              resultContainer.appendChild(partElement);
+            });
+            //download each part as a file when download button is clicked
+            const downloadButton = document.createElement("button");
+            downloadButton.textContent = "Download All Parts";
+            downloadButton.onclick = () => {
+              data.forEach((part, index) => {
+                const blob = new Blob([JSON.stringify(part)], {
+                  type: "application/json",
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `part-${index + 1}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              });
+            };
+            resultContainer.appendChild(downloadButton);
+          } catch (error) {
+            document.getElementById("split-result").textContent =
+              "Error splitting the secret. Please check your input.";
+          }
+        });
+
+      function addPartToRecover(part) {
+        const recoverTextarea = document.getElementById("shares2");
+        let currentParts = recoverTextarea.value
+          ? JSON.parse(recoverTextarea.value)
+          : [];
+        currentParts.push(part);
+        recoverTextarea.value = JSON.stringify(currentParts, null, 2);
+      }
+
+      document
+        .getElementById("recover-form")
+        .addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const parts = JSON.parse(document.getElementById("shares2").value);
+
+          try {
+            const response = await fetch("/join", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ parts }),
+            });
+            const data = await response.json();
+            document.getElementById(
+              "recover-result"
+            ).innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+          } catch (error) {
+            document.getElementById("recover-result").textContent =
+              "Error recovering the secret. Please check your input.";
+          }
+        });
+    </script>
+  </body>
+</html>
