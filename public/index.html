@@ -59,6 +59,9 @@
     />
     <!-- bsv unpkg -->
     <script src="https://unpkg.com/bsv@1.5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bsv@1.5.0/bsv-message.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bsv@1.5.0/bsv-mnemonic.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bsv@1.5.0/bsv-ecies.min.js"></script>
     <style>
       body {
         margin: 0 auto;
@@ -172,17 +175,58 @@
         </p>
       </footer>
     </main>
+    <script src="encryption.js"></script>
     <script>
       //clear inputs
       document.getElementById("secret").value = "";
       document.getElementById("threshold").value = "";
       document.getElementById("shares").value = "";
       document.getElementById("shares2").value = "";
-
-      const privateKey = new bsv.PrivateKey.fromRandom();
+      const Buffer = bsv.deps.Buffer;
+      const generateKeys = () => {
+        const Mnemonic = bsv.Mnemonic;
+        const mnemonic = new Mnemonic();
+        const fullPath = "m/44'/0'/0'/0/0";
+        const xpriv = mnemonic.toHDPrivateKey(); // HD Private Key
+        const derivedPriv = xpriv.deriveChild(fullPath); // Derive the private key using the full path
+        const priv = derivedPriv.privateKey; // Get the actual private key
+        const pub = bsv.PublicKey.fromPrivateKey(priv); // Derive the public key from the private key
+        address = bsv.Address.fromPublicKey(pub).toString();
+        const jsonString = JSON.stringify({
+          address: address,
+          privateKey: priv.toString(),
+          publicKey: pub.toString(),
+          mnemonic: mnemonic.toString(),
+          path: fullPath,
+        });
+        return jsonString;
+      };
+      const encrypt = (myString, myPassword) => {
+        //crypto-js
+        const cryptoJS = window.CryptoJS;
+        // Encrypt
+        const ciphertext = cryptoJS.AES.encrypt(
+          myString,
+          myPassword
+        ).toString();
+        return ciphertext;
+      };
+      //
+      const decrypt = (myString, myPassword) => {
+        //crypto-js
+        const cryptoJS = window.CryptoJS;
+        // Decrypt
+        const bytes = cryptoJS.AES.decrypt(myString, myPassword);
+        const plaintext = bytes.toString(cryptoJS.enc.Utf8);
+        return plaintext;
+      };
+      const keys = generateKeys();
+      const mnemonic = JSON.parse(keys).mnemonic;
+      // const password = prompt("Enter a password to encrypt your mnemonic");
+      // const encryptedMnemonic = encrypt(mnemonic, password);
+      // console.log("Encrypted Mnemonic: ", encryptedMnemonic);
       //add to message
-      console.log("Private Key: ", privateKey.toWIF());
-      document.getElementById("secret").value = privateKey.toWIF();
+      document.getElementById("secret").value = mnemonic;
       document
         .getElementById("split-form")
         .addEventListener("submit", async (event) => {
