@@ -1,6 +1,6 @@
 // Load environment variables from a .env file
 require("dotenv").config();
-const cors = require("cors");
+// const cors = require("cors");
 // Import necessary modules
 const express = require("express");
 const { split, join } = require("shamir");
@@ -17,7 +17,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // Middleware for enabling CORS
 // enable cors from secretslices.com
-app.use(cors({ origin: "https://secretslices.com" }));
+// app.use(cors({ origin: "https://secretslices.com" }));
 // Serve static files from the "public" directory
 app.use(express.static("public"));
 
