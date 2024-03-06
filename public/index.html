@@ -293,11 +293,14 @@
           document.getElementById("secret").value = privateKey;
           document.getElementById("changeLabel").textContent =
             "Change to a Mnemonic";
+          // unchecked checkbox
+          document.getElementById("encrypt").checked = false;
         } else {
           const mnemonic = JSON.parse(keys).mnemonic;
           document.getElementById("secret").value = mnemonic;
           document.getElementById("changeLabel").textContent =
             "Change to a Private Key";
+          document.getElementById("encrypt").checked = false;
         }
       });
       document
