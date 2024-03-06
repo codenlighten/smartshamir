@@ -91,6 +91,21 @@
       .clickable-part:hover {
         background: #d1d1d1;
       }
+      /* checkbox and label on same line*/
+      input[type="checkbox"] {
+        display: none;
+      }
+      input[type="checkbox"] + label {
+        display: inline-block;
+        cursor: pointer;
+        padding: 5px 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      input[type="checkbox"]:checked + label {
+        background-color: #007bff;
+        color: #fff;
+      }
 
       footer {
         margin-top: 20px;
@@ -119,6 +134,16 @@
               required
               placeholder="Enter secret message"
             />
+            <!-- checkbox change to private key -->
+            <input
+              type="checkbox"
+              id="privateKey"
+              name="privateKey"
+              value="privateKey"
+            />
+            <label id="changeLabel" for="privateKey"
+              >Change to a Private Key</label
+            >
             <label for="threshold"
               >Threshold (Minimum shares to recover secret)</label
             >
@@ -227,6 +252,20 @@
       // console.log("Encrypted Mnemonic: ", encryptedMnemonic);
       //add to message
       document.getElementById("secret").value = mnemonic;
+      //check if checkbox is checked
+      document.getElementById("privateKey").addEventListener("change", () => {
+        if (document.getElementById("privateKey").checked) {
+          const privateKey = JSON.parse(keys).privateKey;
+          document.getElementById("secret").value = privateKey;
+          document.getElementById("changeLabel").textContent =
+            "Change to a Mnemonic";
+        } else {
+          const mnemonic = JSON.parse(keys).mnemonic;
+          document.getElementById("secret").value = mnemonic;
+          document.getElementById("changeLabel").textContent =
+            "Change to a Private Key";
+        }
+      });
       document
         .getElementById("split-form")
         .addEventListener("submit", async (event) => {
