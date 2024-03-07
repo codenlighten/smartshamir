@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta
+      name="description"
+      content="Securely split a secret into shares or recover the original secret from shares."
+    />
+    <meta
+      name="keywords"
+      content="shamir, secret sharing, split, recover, secret, shares"
+    />
+    <meta name="author" content="SmartLedger & Codenlighten" />
+    <meta name="robots" content="index, follow" />
+    <meta name="revisit-after" content="3 days" />
+    <meta name="language" content="English" />
+
+    <meta
+      property="og:title"
+      content="SecretSlices.com Shamir Secret Sharing"
+    />
+    <meta
+      property="og:description"
+      content="Securely split a secret into shares or recover the original secret from shares."
+    />
+    <!-- favicon -->
+    <link rel="icon" href="secretslice.webp" type="image/x-icon" />
+    <meta
+      property="og:image"
+      content="https://secretslices.com/secretslice.webp"
+    />
+    <meta property="og:url" content="https://secretslices.com" />
+    <meta property="og:site_name" content="SecretSlices.com" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="@smart_ledger" />
+    <meta name="twitter:creator" content="@codenlighten1" />
+    <meta
+      name="twitter:title"
+      content="SecretSlices.com Shamir Secret Sharing"
+    />
+    <meta
+      name="twitter:description"
+      content="Securely split a secret into shares or recover the original secret from shares."
+    />
+    <meta
+      name="twitter:image"
+      content="https://secretslices.com/secretslice.webp"
+    />
+
+    <title>SecretSlices.com - Shamir Secret Sharing</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/milligram/dist/milligram.min.css"
+    />
+    <!-- bsv unpkg -->
+    <script src="https://unpkg.com/bsv@1.5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bsv@1.5.0/bsv-message.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bsv@1.5.0/bsv-mnemonic.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bsv@1.5.0/bsv-ecies.min.js"></script>
+    <style>
+      body {
+        margin: 0 auto;
+        max-width: 800px;
+        padding: 20px;
+      }
+      #split-result,
+      #recover-result {
+        background-color: #f0f0f0;
+        border-radius: 4px;
+        padding: 10px;
+        margin-top: 20px;
+        overflow-y: auto;
+      }
+      textarea {
+        min-height: 100px;
+      }
+      .clickable-part {
+        cursor: pointer;
+        margin-bottom: 5px;
+        display: inline-block;
+        background: #e1e1e1;
+        border-radius: 4px;
+        padding: 5px;
+        font-size: 90%;
+      }
+      .clickable-part:hover {
+        background: #d1d1d1;
+      }
+      /* checkbox and label on same line*/
+      input[type="checkbox"] {
+        display: none;
+      }
+      input[type="checkbox"] + label {
+        display: inline-block;
+        cursor: pointer;
+        padding: 5px 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      input[type="checkbox"]:checked + label {
+        background-color: #007bff;
+        color: #fff;
+      }
+
+      /* encrypt and decrypt button */
+
+      #encrypt,
+      #decrypt :hover {
+        background-color: #007bff;
+        color: #fff;
+      }
+
+      footer {
+        margin-top: 20px;
+        text-align: center;
+      }
+      #recovered {
+        background-color: #f0f0f0;
+        border-radius: 4px;
+        padding: 10px;
+        margin: 20px;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Secret Slices</h1>
+      <p>
+        Securely split a secret into shares or recover the original secret from
+        shares.
+      </p>
+    </header>
+    <main>
+      <section>
+        <h2>Split Secret</h2>
+        <form id="split-form">
+          <fieldset>
+            <label for="secret">Secret Message</label>
+            <input
+              type="text"
+              id="secret"
+              name="secret"
+              required
+              placeholder="Enter secret message"
+            />
+            <!-- checkbox change to private key -->
+            <input
+              type="checkbox"
+              id="privateKey"
+              name="privateKey"
+              value="privateKey"
+            />
+            <label id="changeLabel" for="privateKey"
+              >Change to a Private Key</label
+            >
+            <!-- checkbox to check for encrypt message -->
+            <input
+              type="checkbox"
+              id="encrypt"
+              name="encrypt"
+              value="encrypt"
+            />
+            <label for="encrypt">Encrypt Secret</label>
+            <label for="threshold"
+              >Threshold (Minimum shares to recover secret)</label
+            >
+            <input
+              type="number"
+              id="threshold"
+              name="threshold"
+              required
+              placeholder="Enter threshold"
+            />
+            <label for="shares">Number of Shares</label>
+            <input
+              type="number"
+              id="shares"
+              name="shares"
+              required
+              placeholder="Enter number of shares"
+            />
+
+            <button type="submit" class="button-primary">Split Secret</button>
+          </fieldset>
+        </form>
+        <div id="split-result"></div>
+      </section>
+      <section>
+        <h2>Recover Secret</h2>
+        <form id="recover-form">
+          <fieldset>
+            <label for="shares2"
+              >Click on key slices above or manually enter Shares (as JSON
+              array)</label
+            >
+            <textarea
+              id="shares2"
+              name="shares"
+              required
+              placeholder='Format: [{"part":"1","value":"..."}, ...]'
+            ></textarea>
+            <button type="submit" class="button-primary">Recover Secret</button>
+            <!-- check box to decrypt -->
+            <input
+              type="checkbox"
+              id="decrypt"
+              name="decrypt"
+              value="decrypt"
+            />
+            <label for="decrypt">Decrypt Secret</label>
+          </fieldset>
+        </form>
+
+        <div id="recover-result"></div>
+      </section>
+      <section class="section" id="help-page">
+        <a href="/help.html">Help & Guide</a>
+        <a href="/browser.html">Browser Version</a>
+        <a
+          href="https://plugins.whatsonchain.com/api/plugin/main/8d24a5defe5c3d67862fea08e5942b2c64fd4afc332babcc06ec0d136d3c6a33"
+          >Onchain Version 0.1</a
+        >
+      </section>
+      <footer>
+        <p>
+          Tip Address:
+          <a href="bitcoin:1Nqo2xV54jUzo6jMVJ63btWmSkpAibb2oc"
+            >Tip BSV to Author: 1Nqo2xV54jUzo6jMVJ63btWmSkpAibb2oc</a
+          >
+        </p>
+        <p>
+          &copy; 2024 SecretSlices.com, a project by
+          <a href="https://smartledger.solutions" target="_blank"
+            >SmartLedger</a
+          >
+          &
+          <a href="https://twitter.com/codenlighten1" target="_blank"
+            >Codenlighten</a
+          >
+        </p>
+      </footer>
+    </main>
+    <script src="encryption.js"></script>
+    <script>
+      //clear inputs
+      // ondom load
+
+      document.getElementById("secret").value = "";
+      document.getElementById("threshold").value = "";
+      document.getElementById("shares").value = "";
+      document.getElementById("shares2").value = "";
+      //uncheck checkbox
+      document.getElementById("privateKey").checked = false;
+      document.getElementById("encrypt").checked = false;
+      document.getElementById("decrypt").checked = false;
+      const Buffer = bsv.deps.Buffer;
+      const generateKeys = () => {
+        const Mnemonic = bsv.Mnemonic;
+        const mnemonic = new Mnemonic();
+        const fullPath = "m/44'/0'/0'/0/0";
+        const xpriv = mnemonic.toHDPrivateKey(); // HD Private Key
+        const derivedPriv = xpriv.deriveChild(fullPath); // Derive the private key using the full path
+        const priv = derivedPriv.privateKey; // Get the actual private key
+        const pub = bsv.PublicKey.fromPrivateKey(priv); // Derive the public key from the private key
+        address = bsv.Address.fromPublicKey(pub).toString();
+        const jsonString = JSON.stringify({
+          address: address,
+          privateKey: priv.toString(),
+          publicKey: pub.toString(),
+          mnemonic: mnemonic.toString(),
+          path: fullPath,
+        });
+        return jsonString;
+      };
+      const encrypt = (myString, myPassword) => {
+        //crypto-js
+        const cryptoJS = window.CryptoJS;
+        // Encrypt
+        const ciphertext = cryptoJS.AES.encrypt(
+          myString,
+          myPassword
+        ).toString();
+        return ciphertext;
+      };
+      //
+      const decrypt = (myString, myPassword) => {
+        //crypto-js
+        const cryptoJS = window.CryptoJS;
+        // Decrypt
+        const bytes = cryptoJS.AES.decrypt(myString, myPassword);
+        const plaintext = bytes.toString(cryptoJS.enc.Utf8);
+        return plaintext;
+      };
+      const keys = generateKeys();
+      const mnemonic = JSON.parse(keys).mnemonic;
+      // const password = prompt("Enter a password to encrypt your mnemonic");
+      // const encryptedMnemonic = encrypt(mnemonic, password);
+      // console.log("Encrypted Mnemonic: ", encryptedMnemonic);
+      //add to message
+      document.getElementById("secret").value = mnemonic;
+      //check if checkbox is checked
+      document.getElementById("privateKey").addEventListener("change", () => {
+        if (document.getElementById("privateKey").checked) {
+          const privateKey = JSON.parse(keys).privateKey;
+          document.getElementById("secret").value = privateKey;
+          document.getElementById("changeLabel").textContent =
+            "Change to a Mnemonic";
+          // unchecked checkbox
+          document.getElementById("encrypt").checked = false;
+        } else {
+          const mnemonic = JSON.parse(keys).mnemonic;
+          document.getElementById("secret").value = mnemonic;
+          document.getElementById("changeLabel").textContent =
+            "Change to a Private Key";
+          document.getElementById("encrypt").checked = false;
+        }
+      });
+      document
+        .getElementById("split-form")
+        .addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const secret = document.getElementById("secret").value;
+          const threshold = document.getElementById("threshold").value;
+          const shares = document.getElementById("shares").value;
+
+          try {
+            const response = await fetch("/split", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                secret,
+                numParts: shares,
+                quorum: threshold,
+              }),
+            });
+            const data = await response.json();
+            const resultContainer = document.getElementById("split-result");
+            resultContainer.innerHTML = ""; // Clear previous results
+            const directions = document.createElement("p");
+            directions.textContent =
+              "Click on necessary number of parts to add it to the recover form & test recovery, or download all parts.";
+            resultContainer.appendChild(directions);
+            // Create clickable parts for each split secret
+            data.forEach((part) => {
+              const partElement = document.createElement("div");
+              partElement.classList.add("clickable-part");
+              partElement.textContent = JSON.stringify(part);
+              partElement.onclick = () => addPartToRecover(part);
+              resultContainer.appendChild(partElement);
+            });
+            //download each part as a file when download button is clicked
+            const downloadButton = document.createElement("button");
+            downloadButton.textContent = "Download All Parts";
+            downloadButton.onclick = () => {
+              data.forEach((part, index) => {
+                const blob = new Blob([JSON.stringify(part)], {
+                  type: "application/json",
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `part-${index + 1}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              });
+            };
+            resultContainer.appendChild(downloadButton);
+          } catch (error) {
+            document.getElementById("split-result").textContent =
+              "Error splitting the secret. Please check your input.";
+          }
+        });
+
+      function addPartToRecover(part) {
+        const recoverTextarea = document.getElementById("shares2");
+        let currentParts = recoverTextarea.value
+          ? JSON.parse(recoverTextarea.value)
+          : [];
+        currentParts.push(part);
+        recoverTextarea.value = JSON.stringify(currentParts, null, 2);
+      }
+
+      document
+        .getElementById("recover-form")
+        .addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const parts = JSON.parse(document.getElementById("shares2").value);
+
+          try {
+            const response = await fetch("/join", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ parts }),
+            });
+            const data = await response.json();
+            const secret = data.secret;
+            document.getElementById(
+              "recover-result"
+            ).innerHTML = `<p id="recovered">${secret}</p>`;
+          } catch (error) {
+            document.getElementById("recover-result").textContent =
+              "Error recovering the secret. Please check your input.";
+          }
+        });
+
+      //check if checkbox is checked
+      document.getElementById("encrypt").addEventListener("change", () => {
+        if (document.getElementById("encrypt").checked) {
+          const secret = document.getElementById("secret").value;
+          const password = prompt("Enter a password to encrypt your secret");
+          const encryptedSecret = encrypt(secret, password);
+          document.getElementById("secret").value = encryptedSecret;
+        } else {
+          const secret = document.getElementById("secret").value;
+          const password = prompt("Enter a password to decrypt your secret");
+          const decryptedSecret = decrypt(secret, password);
+          document.getElementById("secret").value = decryptedSecret;
+        }
+      });
+
+      //check if checkbox is checked
+      document.getElementById("decrypt").addEventListener("change", () => {
+        const recoveredSecret =
+          document.getElementById("recovered").textContent;
+        console.log("Recovered Secret: ", recoveredSecret);
+        const password = prompt("Enter a password to decrypt your secret");
+        const decryptedSecret = decrypt(recoveredSecret, password);
+        document.getElementById(
+          "recover-result"
+        ).innerHTML = `<p id="recovered">${decryptedSecret}</p>`;
+        //disable checkbox
+        document.getElementById("decrypt").disabled = true;
+      });
+    </script>
+  </body>
+</html>
